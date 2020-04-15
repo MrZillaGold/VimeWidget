@@ -1,6 +1,6 @@
 {
   "name": "vimewidget",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Виджет с информацией о гильдии VimeWorld для группы VK.COM",
   "main": "index.mjs",
   "dependencies": {
