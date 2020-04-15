@@ -4,7 +4,11 @@ const widget = new Widget();
 
 widget.UpdateWidget();
 
-setInterval(() => widget.UpdateWidget(), 15 * 60 * 1000); // Обновление виджета происходит раз в 15 минут, так как информация о гильдии обновляется раз в 10-15 минут.
+setInterval(() => {
+    const widget = new Widget();
+
+    widget.UpdateWidget();
+}, 15 * 60 * 1000); // Обновление виджета происходит раз в 15 минут, так как информация о гильдии обновляется раз в 10-15 минут.
 
 console.log("[VimeWidget] Запущен!");
 
