@@ -3,13 +3,18 @@
   "version": "1.0.1",
   "description": "Виджет с информацией о гильдии VimeWorld для группы VK.COM",
   "main": "index.mjs",
-  "dependencies": {
-    "axios": "^0.19.2"
-  },
-  "devDependencies": {},
   "scripts": {
     "start": "node --experimental-modules --experimental-json-modules --es-module-specifier-resolution=node index.mjs"
   },
+  "author": {
+    "name": "MrZillaGold",
+    "url": "https://vk.com/mrzillagold"
+  },
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "bugs": {
+    "url": "https://github.com/MrZillaGold/VimeWidget/issues"
+  },
+  "homepage": "https://github.com/MrZillaGold/VimeWidget#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MrZillaGold/VimeWidget.git"
@@ -19,13 +24,7 @@
     "widget",
     "guild"
   ],
-  "author": {
-    "name": "MrZillaGold",
-    "url": "https://vk.com/mrzillagold"
-  },
-  "license": "SEE LICENSE IN LICENSE.txt",
-  "bugs": {
-    "url": "https://github.com/MrZillaGold/VimeWidget/issues"
-  },
-  "homepage": "https://github.com/MrZillaGold/VimeWidget#readme"
+  "dependencies": {
+    "axios": "^0.19.2"
+  }
 }

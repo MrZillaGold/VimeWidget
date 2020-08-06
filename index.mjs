@@ -1,9 +1,9 @@
-import { Widget } from "./modules/widget";
+import { Widget } from "./modules/Widget";
 
 const updateWidget = () => {
     const widget = new Widget();
 
-    widget.UpdateWidget();
+    widget.updateWidget();
 };
 
 updateWidget();
