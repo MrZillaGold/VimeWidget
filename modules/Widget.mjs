@@ -108,7 +108,7 @@ export class Widget {
             .then((results) => {
                 results.forEach(({ status, value: top }) => {
                     if (status === "fulfilled" && top.records[0]) {
-                        const index = top.records.findIndex(element => element.id === guild_id);
+                        const index = top.records.findIndex((element) => element.id === guild_id);
 
                         this.tops[top.type] = index !== -1 ? index + 1 : null;
                     }
