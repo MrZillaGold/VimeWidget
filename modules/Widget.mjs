@@ -1,77 +1,69 @@
 import axios from "axios";
-import config from "../config";
-import { declOfNum, getDate } from "./functions";
 
-const { guild_id, widget_token, icon_id } = config;
+import { declOfNum, humanizeDate, ranks, TOP_TYPES } from "./utils.mjs";
 
 const API_ENDPOINT = "https://api.vimeworld.ru";
 
-const ranks = new Map([
-    ["PLAYER", ""],
-    ["VIP", "VIP"],
-    ["PREMIUM", "Premium"],
-    ["HOLY", "Holy"],
-    ["IMMORTAL", "Immortal"],
-    ["BUILDER", "Билдер"],
-    ["MAPLEAD", "Гл. билдер"],
-    ["YOUTUBE", "YouTube"],
-    ["DEV", "Dev"],
-    ["ORGANIZER", "Организатор"],
-    ["MODER", "Модер"],
-    ["WARDEN", "Модер"],
-    ["CHIEF", "Гл. модер"],
-    ["ADMIN", "Гл. админ"]
-]);
-
 export class Widget {
 
-    state = {
-        guild: null,
-        tops: [],
-        widget: { // https://vk.com/dev/objects/appWidget?f=2.%20List
-            title: "Гильдия - ",
-            rows: [
-                {
-                    title: "Лидер: ",
-                    descr: "",
-                    address: "",
-                    time: "Создана: ",
-                    text: "",
-                    icon_id
-                },
-                {
-                    title: "Больше всего заработали опыта:",
-                    text: "",
-                    icon_id
-                },
-                {
-                    title: "Больше всего вложили коинов:",
-                    text: "",
-                    icon_id
-                }
-            ],
-            more: "Хочу себе такой виджет",
-            more_url: "https://vk.com/@mrzillagold-vimewidget"
-        }
+    guild = null;
+    tops = {};
+
+    widget = { // https://vk.com/dev/objects/appWidget?f=2.%20List
+        title: "Гильдия - ",
+        rows: [
+            {
+                title: "Лидер: ",
+                descr: "",
+                address: "",
+                time: "Создана: ",
+                text: ""
+            },
+            {
+                title: "Больше всего заработали опыта:",
+                text: ""
+            },
+            {
+                title: "Больше всего вложили коинов:",
+                text: ""
+            }
+        ],
+        more: "Хочу себе такой виджет",
+        more_url: "https://vk.com/@mrzillagold-vimewidget"
     };
 
+    constructor(cluster) {
+        this.cluster = cluster;
+
+        const { icon_id } = cluster;
+
+        this.widget.rows = this.widget.rows.map((row) => {
+            row.icon_id = icon_id || null;
+
+            return row;
+        });
+    }
+
+
     async updateWidget() {
-        let { guild, widget, tops } = this.state;
+        let { guild, widget, tops, cluster: { guild_id, widget_token, index } } = this;
 
         await axios.get(`${API_ENDPOINT}/guild/get?id=${guild_id}`) // Получаем информацию о гильдии с API VimeWorld
             .then(({ data }) => guild = data)
-            .catch(console.log);
+            .catch(console.error);
 
         if (guild) {
-            if (guild.error) {
-                return console.log(`[!] Ошибка при получении информации о гильдии.\n\n${guild.error.error_code} - ${guild.error.error_msg}`);
+            const error = guild.error;
+
+            if (error) {
+                return console.error(`[!] Ошибка при получении информации о гильдии в кластере #${index}.\n\n${error.error_code} - ${error.error_msg}`);
             }
 
             widget.title += guild.name; // Имя гильдии в шапку виджета
 
-            widget.rows[0].title += guild.members.filter(member => member.status === "LEADER")[0].user.username; // Ищем лидера гильдии
+            widget.rows[0].title += guild.members.filter((member) => member.status === "LEADER")[0].user.username; // Ищем лидера гильдии
 
-            widget.rows[0].time += getDate(guild.created); // Превращаем дату создания гильдии в человеческий вид и записываем в виджет
+            widget.rows[0].time += humanizeDate(guild.created); // Превращаем дату создания гильдии в человеческий вид и записываем в виджет
 
             widget.rows[0].address += `${declOfNum(guild.members.length, ["Участник", "Участника", "Участников"])}: ${guild.members.length}/${20 + guild.perks.MEMBERS.level * 5} | `; // Количество участников гильдии
             widget.rows[0].address += `Последний вступивший: ${guild.members.sort((a, b) => b.joined - a.joined)[0].user.username}`; // Последний вступивший в гильдию
@@ -82,85 +74,80 @@ export class Widget {
 
             await this.getTop(); // Получаем индекс гильдии в топе по уровню и коинам
 
-            widget.rows[0].descr += `Место топа по опыту: ${tops[0] || "Нет"} | Место топа по коинам: ${tops[1] || "Нет"}`; // Глобальный топ по коинам и уровню
+            widget.rows[0].descr += `Место топа по опыту: ${tops.level || "Нет"} | Место топа по коинам: ${tops.total_coins || "Нет"}`; // Глобальный топ по коинам и уровню
 
             await this.sortTops(guild); // Формируем топ по коинам и уровню внутри гильдии
 
             axios.get(`https://api.vk.com/method/appWidgets.update?type=list&code=return ${encodeURIComponent(JSON.stringify(widget))}%3B&access_token=${widget_token}&v=5.103`) // Обновляем виджет
-                .then((res) => {
-                    const error = res.data.error;
-
+                .then(({ data: { error } }) => {
                     if (error) {
-                        return console.log(`[!] Ошибка при обновлении виджета:\nКод ошибки: ${error.error_code}\n${error.error_msg}`);
+                        return console.log(`[!] Ошибка ВКонтакте при обновлении виджета!\nКод ошибки: ${error.error_code}\n${error.error_msg}`);
                     }
 
-                    console.log("[VimeWidget] Виджет обновлён!")
+                    console.log("[VimeWidget] Виджет обновлён!");
                 })
-                .catch(error => console.log(`[!] Произошла ошибка при обновлении виджета!\n${error}`));
+                .catch((error) => console.error(`[!] Произошла ошибка при обновлении виджета в кластере #${index}!\n${error}`));
         } else {
-            return console.log("[!] Не удалось получить информацию о гильдии, возможно произошла ошибка.")
+            return console.error(`[!] Не удалось получить информацию о гильдии в кластере #${index}, возможно произошла ошибка.`);
         }
     }
 
-    async getTop() {
-        const { tops } = this.state;
+    getTop() {
+        const { guild_id } = this.cluster;
 
-        const topTypes = [
-            {
-                type: "level"
-            },
-            {
-                type: "total_coins"
-            }
-        ];
+        return Promise.allSettled(
+            TOP_TYPES.map((type) =>
+                axios.get(`${API_ENDPOINT}/leaderboard/get/guild/${type}?size=1000`)
+                    .then(({ data }) => {
+                        data.type = type;
 
-        for (let i = 0; i <= topTypes.length - 1; i++) {
-            let top = await axios.get(`${API_ENDPOINT}/leaderboard/get/guild/${topTypes[i].type}?size=1000`)
-                .then(({ data }) => data);
+                        return data;
+                    })
+            )
+        )
+            .then((results) => {
+                results.forEach(({ status, value: top }) => {
+                    if (status === "fulfilled" && top.records[0]) {
+                        const index = top.records.findIndex(element => element.id === guild_id);
 
-            if (top.records[0]) {
-                top = top.records;
-
-                const index = top.findIndex(element => element.id === guild_id);
-
-                tops.push(index !== -1 ? index + 1 : null);
-            }
-        }
+                        this.tops[top.type] = index !== -1 ? index + 1 : null;
+                    }
+                });
+            });
     }
 
     sortTops(guild) {
-        let { widget } = this.state;
-
         const sorts = [
             {
-                forEach: member => {
-                    widget.rows[1].text += `${this.getRank(member.user.rank)} ${member.user.username} - ${member.guildExp}\n`
-                },
+                forEach: (member) =>
+                    this.widget.rows[1].text += `${this.getRank(member.user.rank)} ${member.user.username} - ${member.guildExp}\n`,
                 sort: (a, b) => b.guildExp - a.guildExp
             },
             {
-                forEach: member => {
-                    widget.rows[2].text += `${this.getRank(member.user.rank)} ${member.user.username} - ${member.guildCoins}\n`
-                },
+                forEach: (member) =>
+                    this.widget.rows[2].text += `${this.getRank(member.user.rank)} ${member.user.username} - ${member.guildCoins}\n`,
                 sort: (a, b) => b.guildCoins - a.guildCoins
             }
         ];
 
-        sorts.forEach(functions => guild.members.sort(functions.sort).slice(0, 3).forEach(functions.forEach))
+        sorts.forEach(({ sort, forEach }) =>
+            guild.members.sort(sort)
+                .slice(0, 3)
+                .forEach(forEach)
+        );
     }
 
     getGuildExp(guild) {
         let totalExp = guild.totalExp;
 
         for (let i = 0; i <= guild.level - 2; i++) {
-            totalExp = totalExp - (50000 + i * 10000);
+            totalExp -= (50000 + i * 10000);
         }
 
         return totalExp;
     }
 
     getRank(rank) {
-
         rank = ranks.get(rank);
 
         return rank ? `[${rank}]` : "";

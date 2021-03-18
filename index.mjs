@@ -1,20 +1,21 @@
 import { Widget } from "./modules/Widget";
 
-const updateWidget = () => {
-    const widget = new Widget();
+import config from "./config.json";
 
-    widget.updateWidget();
-};
+config.clusters.forEach((cluster, index) => {
+    cluster.index = index + 1;
 
-updateWidget();
+    const updateWidget = () => {
+        const widget = new Widget(cluster);
 
-setInterval(updateWidget, 15 * 60 * 1000); // Обновление виджета происходит раз в 15 минут, так как информация о гильдии обновляется раз в 10-15 минут.
+        widget.updateWidget();
+    };
+
+    updateWidget();
+
+    setInterval(updateWidget, 15 * 60 * 1000);
+    // Обновление виджета происходит раз в 15 минут, так как информация о гильдии обновляется раз в 10-15 минут.
+
+});
 
 console.log("[VimeWidget] Запущен!");
-
-//
-// Made with ♥ by MrZillaGold (https://vk.com/mrzillagold)
-//
-// VimeWidget доступен по лицензии Creative Commons «Attribution-NonCommercial-ShareAlike»
-// («Атрибуция — Некоммерческое использование — На тех же условиях») 4.0 Всемирная.
-//
